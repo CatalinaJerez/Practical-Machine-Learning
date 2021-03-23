@@ -1,0 +1,69 @@
+## How to do
+
+### Getting the data 
+
+````{r, message = FALSE, warning = FALSE}
+set.seed(3)
+
+# Library 
+library(caret)
+library(tidyverse)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+
+
+# Url's
+
+url.train <-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+url.test <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+# Preprocessing and cleaning
+
+# Remove redundant variables
+training <- read.csv(url(url.train), na.strings=c("NA","#DIV/0!",""))
+testing  <- read.csv(url(url.test), na.strings=c("NA","#DIV/0!",""))
+
+# Delete missing values
+training <- training[,colSums(is.na(training)) == 0]
+testing  <- testing[,colSums(is.na(testing)) == 0]
+
+# Some variables are irrelevant for the project: 
+# user_name, raw_timestamp_part_1, raw_timestamp_part_,2 cvtd_timestamp, 
+# new_window, and  num_window (columns 1 to 7). 
+# We can delete these variables.
+training <- training[,-c(1:7)]
+testing  <- testing[,-c(1:7)]
+
+# Partioning the training set into two
+# 60% for data.train, 40% for data.test
+
+inTrain    <- createDataPartition(y=training$classe, p=0.6, list=FALSE)
+data.train <- training[inTrain,  ] 
+data.test  <- training[-inTrain, ]
+
+# Dimensions
+dim(data.train); dim(data.test)
+
+# The variable "classe" contains 5 levels: A, B, C, D and E. 
+# A plot of the outcome variable will allow us to see the frequency of each levels 
+# in the train data set and compare one another.
+
+plot(data.train$classe, col="grey50", main="Levels of the variable classe within the train data set", xlab="Classe levels", ylab="Frequency")
+`````
+
+### Prediction model I: Decision tree
+````{r}
+# Model
+tree.model <- rpart(classe ~ ., data = data.train, method="class")
+
+# Predicting
+tree.pred  <- predict(tree.model, data.test, type = "class")
+
+# Plot of the Decision Tree
+rpart.plot(tree.model, main="Classification Tree", extra=102, under=TRUE, faclen=0)
+
+# Test results on the test data set:
+confusionMatrix(tree.pred, data.test$classe)
+
+`````
